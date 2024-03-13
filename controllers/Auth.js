@@ -176,6 +176,7 @@ exports.logIn = async(req, res) => {
       const payload = {
         email: user.email,
         id: user._id,
+        role: user.accountType,
       }
       const token = JWT.sign(payload, process.env.JWT_SECRET,{
         expiresIn: '2h',
@@ -211,4 +212,7 @@ exports.logIn = async(req, res) => {
 }
 
 //changePassword
+exports.changePassword = async(req, res) =>{
+  
+}
 
