@@ -1,13 +1,16 @@
 const User = require('../models/User');
 const OTP = require('../models/OTP');
-const otpGenrator = require('otp-genrator');
+const otpGenerator = require('otp-generator');
 const bcrypt = require('bcrypt');
 const JWT = require('jsonwebtoken')
+const mailSender = require("../utils/mailSender");
+const { passwordUpdated } = require("../mail/templates/passwordUpdate");
+const Profile = require("../models/Profile");
 require('dotenv').config
 //sendOTP
-exports.sendOTP = async (req, res) => {
+exports.sendotp = async (req, res) => {
   try{
-        const email = req.body; //fetch email form request body
+        const {email} = req.body; //fetch email form request body
         const checkUserPersent = await User.findOne({ email }); //Check User Exist or not
 
         if(checkUserPersent){
@@ -18,19 +21,19 @@ exports.sendOTP = async (req, res) => {
     }
 
     //Genrate OTP
-    var otp = otpGenrator.genrate(6,{
-        upperCaseAlphabet: false,
-        lowerCaseAlphabet: false,
+    var otp = otpGenerator.generate(6,{
+        upperCaseAlphabets: false,
+        lowerCaseAlphabets: false,
         specialChars: false,
     });
     console.log(otp);
 
     //check Unique OTP
-    let result = await otp.findOne({otp: otp});
+    let result = await OTP.findOne({otp: otp});
     while(result){
-      otp = otpGenrator(6,{
-        upperCaseAlphabet: false,
-        lowerCaseAlphabet: false,
+      otp = otpGenerator.generate(6,{
+        upperCaseAlphabets: false,
+        lowerCaseAlphabets: false,
         specialChars: false,
       });
       result = await OTP.findOne({otp: otp}); 
@@ -59,7 +62,7 @@ exports.sendOTP = async (req, res) => {
 
 
 //signUp
-exports.signUp = async(req, res) => {
+exports.signup = async(req, res) => {
   try{
       const {
         firstName,
@@ -106,9 +109,9 @@ exports.signUp = async(req, res) => {
         success: flase,
         message: 'OTP Not found',
       })
-    } else if(otp !== recentOtp.otp){
+    } else if(otp !== recentOtp[0].otp){
       return res.status(400).json({
-        success: flase,
+        success: false,
         message: "Invaild OTP"
       });
     }
@@ -116,8 +119,11 @@ exports.signUp = async(req, res) => {
     //hashPasword
     const hashedPassword = await bcrypt.hash(password, 10);
     
+    // Create the user
+		let approved = "";
+		// approved === "Instructor" ? (approved = false) : (approved = true);
     const profileDetails = await Profile.create({
-      gender: nul,
+      gender: null,
       dateOfBirth: null,
       about: null,
       contactNaumber: null,
@@ -150,7 +156,7 @@ exports.signUp = async(req, res) => {
 }
 
 //Login
-exports.logIn = async(req, res) => {
+exports.login = async(req, res) => {
   try{
     const {email, password} = req.body
 
@@ -176,7 +182,7 @@ exports.logIn = async(req, res) => {
       const payload = {
         email: user.email,
         id: user._id,
-        role: user.accountType,
+        accountType: user.accountType,
       }
       const token = JWT.sign(payload, process.env.JWT_SECRET,{
         expiresIn: '2h',
